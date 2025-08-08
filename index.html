@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backgammon Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Backgammon</h1>
+        
+        <div class="game-info">
+            <div class="player-info">
+                <span id="current-player">White's Turn</span>
+                <button id="roll-dice" class="btn">Roll Dice</button>
+                <div id="dice-display">
+                    <div class="die" id="die1"></div>
+                    <div class="die" id="die2"></div>
+                </div>
+                <div id="moves-left"></div>
+            </div>
+            <button id="new-game" class="btn">New Game</button>
+        </div>
+
+        <div class="board-container">
+            <div class="board">
+                <div class="board-half top-half">
+                    <div class="points-row">
+                        <div class="point" data-point="13"></div>
+                        <div class="point" data-point="14"></div>
+                        <div class="point" data-point="15"></div>
+                        <div class="point" data-point="16"></div>
+                        <div class="point" data-point="17"></div>
+                        <div class="point" data-point="18"></div>
+                    </div>
+                    <div class="bar-space"></div>
+                    <div class="points-row">
+                        <div class="point" data-point="19"></div>
+                        <div class="point" data-point="20"></div>
+                        <div class="point" data-point="21"></div>
+                        <div class="point" data-point="22"></div>
+                        <div class="point" data-point="23"></div>
+                        <div class="point" data-point="24"></div>
+                    </div>
+                </div>
+                
+                <div class="bar" id="bar">
+                    <div class="bar-section" id="bar-white"></div>
+                    <div class="bar-section" id="bar-black"></div>
+                </div>
+                
+                <div class="board-half bottom-half">
+                    <div class="points-row">
+                        <div class="point" data-point="12"></div>
+                        <div class="point" data-point="11"></div>
+                        <div class="point" data-point="10"></div>
+                        <div class="point" data-point="9"></div>
+                        <div class="point" data-point="8"></div>
+                        <div class="point" data-point="7"></div>
+                    </div>
+                    <div class="bar-space"></div>
+                    <div class="points-row">
+                        <div class="point" data-point="6"></div>
+                        <div class="point" data-point="5"></div>
+                        <div class="point" data-point="4"></div>
+                        <div class="point" data-point="3"></div>
+                        <div class="point" data-point="2"></div>
+                        <div class="point" data-point="1"></div>
+                    </div>
+                </div>
+                
+                <div class="home" id="home-white"></div>
+                <div class="home" id="home-black"></div>
+            </div>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
