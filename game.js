@@ -1,20 +1,14 @@
 class BackgammonGame {
     constructor() {
-        this.board = new Array(25).fill(null).map(() => ({ color: null, count: 0 }));
-        this.bar = { white: 0, black: 0 };
-        this.home = { white: 0, black: 0 };
-        this.currentPlayer = 'white';
-        this.dice = [];
-        this.movesLeft = [];
-        this.selectedPoint = null;
-        this.gameActive = true;
-        
-        this.initializeBoard();
-        this.setupEventListeners();
-        this.render();
+        this.ui = new UI(this);
+        this.resetGame();
     }
     
     initializeBoard() {
+        this.board = new Array(25).fill(null).map(() => ({ color: null, count: 0 }));
+        this.bar = { white: 0, black: 0 };
+        this.home = { white: 0, black: 0 };
+
         this.board[1] = { color: 'white', count: 2 };
         this.board[6] = { color: 'black', count: 5 };
         this.board[8] = { color: 'black', count: 3 };
@@ -23,17 +17,6 @@ class BackgammonGame {
         this.board[17] = { color: 'white', count: 3 };
         this.board[19] = { color: 'white', count: 5 };
         this.board[24] = { color: 'black', count: 2 };
-    }
-    
-    setupEventListeners() {
-        document.getElementById('roll-dice').addEventListener('click', () => this.rollDice());
-        document.getElementById('new-game').addEventListener('click', () => this.resetGame());
-        
-        document.querySelectorAll('.point').forEach(point => {
-            point.addEventListener('click', (e) => this.handlePointClick(e));
-        });
-        
-        document.getElementById('bar').addEventListener('click', (e) => this.handleBarClick(e));
     }
     
     rollDice() {
@@ -50,14 +33,13 @@ class BackgammonGame {
             this.movesLeft = [die1, die2];
         }
         
-        document.getElementById('die1').textContent = die1;
-        document.getElementById('die2').textContent = die2;
-        document.getElementById('roll-dice').disabled = true;
+        this.ui.updateDice();
+        this.ui.setRollDiceButtonState(false);
+        this.ui.updateMovesDisplay();
         
-        this.updateMovesDisplay();
         this.checkAvailableMoves();
     }
-    
+
     handlePointClick(e) {
         const pointElement = e.currentTarget;
         const point = parseInt(pointElement.dataset.point);
@@ -77,19 +59,28 @@ class BackgammonGame {
         }
     }
     
-    handleBarClick(e) {
+    handleBarClick() {
         if (this.bar[this.currentPlayer] > 0 && this.selectedPoint === null) {
-            this.selectedPoint = 'bar';
-            this.highlightPossibleMoves();
+            this.selectPoint('bar');
+        }
+    }
+
+    handleHomeClick(e) {
+        if (this.selectedPoint === null || this.selectedPoint === 'bar') return;
+
+        const player = e.currentTarget.dataset.player;
+        if (player !== this.currentPlayer) return;
+
+        const destination = this.currentPlayer === 'white' ? 25 : 0;
+
+        if (this.canMoveTo(this.selectedPoint, destination)) {
+            this.makeMove(this.selectedPoint, destination);
         }
     }
     
     canSelectPoint(point) {
         if (this.movesLeft.length === 0) return false;
-        
-        if (this.bar[this.currentPlayer] > 0) {
-            return false;
-        }
+        if (this.bar[this.currentPlayer] > 0) return false;
         
         const pointData = this.board[point];
         return pointData.color === this.currentPlayer && pointData.count > 0;
@@ -98,24 +89,19 @@ class BackgammonGame {
     selectPoint(point) {
         this.clearSelection();
         this.selectedPoint = point;
-        
-        if (point !== 'bar') {
-            document.querySelector(`[data-point="${point}"]`).classList.add('selected');
-        }
-        
+        this.ui.highlightPoint(point, 'selected');
         this.highlightPossibleMoves();
     }
     
     clearSelection() {
         this.selectedPoint = null;
-        document.querySelectorAll('.point').forEach(p => {
-            p.classList.remove('selected', 'highlight');
-        });
+        this.ui.clearSelection();
     }
     
     highlightPossibleMoves() {
         if (this.selectedPoint === null) return;
-        
+
+        // Highlight points on board
         this.movesLeft.forEach(move => {
             let targetPoint;
             
@@ -128,42 +114,56 @@ class BackgammonGame {
             }
             
             if (this.isValidMove(this.selectedPoint, targetPoint)) {
-                const pointElement = document.querySelector(`[data-point="${targetPoint}"]`);
-                if (pointElement) {
-                    pointElement.classList.add('highlight');
-                }
+                this.ui.highlightPoint(targetPoint, 'highlight');
             }
         });
+
+        // Highlight home for bear off
+        const homeDestination = this.currentPlayer === 'white' ? 25 : 0;
+        if (this.canMoveTo(this.selectedPoint, homeDestination)) {
+            this.ui.highlightPoint(homeDestination, 'highlight');
+        }
     }
     
     canMoveTo(from, to) {
         if (this.movesLeft.length === 0) return false;
-        
-        const distance = Math.abs(to - from);
-        
+
         if (from === 'bar') {
             const expectedPoint = this.currentPlayer === 'white' ? to : 25 - to;
             return this.movesLeft.includes(expectedPoint) && this.isValidMove(from, to);
         }
-        
+
+        if (to === 0 || to === 25) { // Bearing off
+            if (!this.isValidMove(from, to)) return false;
+
+            const exactDistance = this.currentPlayer === 'white' ? 25 - from : from;
+            if (this.movesLeft.includes(exactDistance)) return true;
+
+            const higherDice = this.movesLeft.find(d => d > exactDistance);
+            if (higherDice) {
+                const homeBoard = this.currentPlayer === 'white' ? [19, 20, 21, 22, 23, 24] : [1, 2, 3, 4, 5, 6];
+                const furthestPoint = this.currentPlayer === 'white'
+                    ? Math.max(...homeBoard.filter(p => this.board[p].color === this.currentPlayer && this.board[p].count > 0))
+                    : Math.min(...homeBoard.filter(p => this.board[p].color === this.currentPlayer && this.board[p].count > 0));
+                return from === furthestPoint;
+            }
+            return false;
+        }
+
+        const distance = Math.abs(to - from);
         return this.movesLeft.includes(distance) && this.isValidMove(from, to);
     }
     
     isValidMove(from, to) {
-        if (this.bar[this.currentPlayer] > 0 && from !== 'bar') {
-            return false;
-        }
+        if (this.bar[this.currentPlayer] > 0 && from !== 'bar') return false;
         
         if (from === 'bar') {
-            const homeBoard = this.currentPlayer === 'white' ? [1, 2, 3, 4, 5, 6] : [19, 20, 21, 22, 23, 24];
-            if (!homeBoard.includes(to)) return false;
+            const entryBoard = this.currentPlayer === 'white' ? [1, 2, 3, 4, 5, 6] : [19, 20, 21, 22, 23, 24];
+            if (!entryBoard.includes(to)) return false;
         }
         
         if (to < 1 || to > 24) {
-            if (this.canBearOff()) {
-                return this.isValidBearOff(from, to);
-            }
-            return false;
+            return this.canBearOff() && this.isValidBearOff(from, to);
         }
         
         const targetPoint = this.board[to];
@@ -172,47 +172,31 @@ class BackgammonGame {
         }
         
         const direction = this.currentPlayer === 'white' ? 1 : -1;
-        const moveDirection = (to - from) * direction;
-        
-        return from !== 'bar' ? moveDirection > 0 : true;
-    }
-    
-    canBearOff() {
-        const homeBoard = this.currentPlayer === 'white' ? [19, 20, 21, 22, 23, 24] : [1, 2, 3, 4, 5, 6];
-        
-        if (this.bar[this.currentPlayer] > 0) return false;
-        
-        for (let i = 1; i <= 24; i++) {
-            if (!homeBoard.includes(i) && this.board[i].color === this.currentPlayer && this.board[i].count > 0) {
-                return false;
-            }
-        }
+        if (from !== 'bar' && (to - from) * direction < 0) return false;
         
         return true;
     }
     
-    isValidBearOff(from, to) {
-        if (!this.canBearOff()) return false;
+    canBearOff() {
+        if (this.bar[this.currentPlayer] > 0) return false;
         
         const homeBoard = this.currentPlayer === 'white' ? [19, 20, 21, 22, 23, 24] : [1, 2, 3, 4, 5, 6];
+        for (let i = 1; i <= 24; i++) {
+            if (this.board[i].color === this.currentPlayer && !homeBoard.includes(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    isValidBearOff(from, to) {
+        const homeBoard = this.currentPlayer === 'white' ? [19, 20, 21, 22, 23, 24] : [1, 2, 3, 4, 5, 6];
         if (!homeBoard.includes(from)) return false;
-        
-        const exactDistance = this.currentPlayer === 'white' ? 25 - from : from;
-        
-        if (this.movesLeft.includes(exactDistance)) {
-            return true;
-        }
-        
-        const higherDice = Math.max(...this.movesLeft);
-        if (higherDice > exactDistance) {
-            const furthestPoint = this.currentPlayer === 'white' 
-                ? Math.max(...homeBoard.filter(p => this.board[p].color === this.currentPlayer && this.board[p].count > 0))
-                : Math.min(...homeBoard.filter(p => this.board[p].color === this.currentPlayer && this.board[p].count > 0));
-            
-            return from === furthestPoint;
-        }
-        
-        return false;
+
+        if (this.currentPlayer === 'white' && to <= 24) return false;
+        if (this.currentPlayer === 'black' && to >= 1) return false;
+
+        return true;
     }
     
     makeMove(from, to) {
@@ -220,15 +204,14 @@ class BackgammonGame {
             this.bar[this.currentPlayer]--;
         } else {
             this.board[from].count--;
-            if (this.board[from].count === 0) {
-                this.board[from].color = null;
-            }
+            if (this.board[from].count === 0) this.board[from].color = null;
         }
         
-        if (to > 24 || to < 1) {
+        const isBearOff = to > 24 || to < 1;
+        if (isBearOff) {
             this.home[this.currentPlayer]++;
         } else {
-            if (this.board[to].color && this.board[to].color !== this.currentPlayer && this.board[to].count === 1) {
+            if (this.board[to].color && this.board[to].color !== this.currentPlayer) {
                 this.bar[this.board[to].color]++;
                 this.board[to].color = this.currentPlayer;
                 this.board[to].count = 1;
@@ -238,25 +221,10 @@ class BackgammonGame {
             }
         }
         
-        const moveDistance = from === 'bar' 
-            ? (this.currentPlayer === 'white' ? to : 25 - to)
-            : Math.abs(to - from);
-        
-        const moveIndex = this.movesLeft.indexOf(moveDistance);
-        if (moveIndex === -1 && this.canBearOff()) {
-            const exactDistance = this.currentPlayer === 'white' ? 25 - from : from;
-            const higherDice = this.movesLeft.find(d => d >= exactDistance);
-            const index = this.movesLeft.indexOf(higherDice);
-            if (index !== -1) {
-                this.movesLeft.splice(index, 1);
-            }
-        } else if (moveIndex !== -1) {
-            this.movesLeft.splice(moveIndex, 1);
-        }
+        this.consumeMove(from, to);
         
         this.clearSelection();
-        this.render();
-        this.updateMovesDisplay();
+        this.ui.render();
         
         if (this.movesLeft.length === 0) {
             this.endTurn();
@@ -265,6 +233,28 @@ class BackgammonGame {
         }
         
         this.checkWinCondition();
+    }
+
+    consumeMove(from, to) {
+        let moveDistance;
+        if (to > 24 || to < 1) { // Bear-off
+            const exactDistance = this.currentPlayer === 'white' ? 25 - from : from;
+            if (this.movesLeft.includes(exactDistance)) {
+                moveDistance = exactDistance;
+            } else {
+                moveDistance = Math.min(...this.movesLeft.filter(d => d > exactDistance));
+            }
+        } else if (from === 'bar') {
+            moveDistance = this.currentPlayer === 'white' ? to : 25 - to;
+        } else {
+            moveDistance = Math.abs(to - from);
+        }
+
+        const moveIndex = this.movesLeft.indexOf(moveDistance);
+        if (moveIndex !== -1) {
+            this.movesLeft.splice(moveIndex, 1);
+        }
+        this.ui.updateMovesDisplay();
     }
     
     checkAvailableMoves() {
@@ -280,21 +270,22 @@ class BackgammonGame {
             }
         } else {
             for (let from = 1; from <= 24; from++) {
-                if (this.board[from].color === this.currentPlayer && this.board[from].count > 0) {
+                if (this.board[from].color === this.currentPlayer) {
                     for (let move of this.movesLeft) {
                         const to = this.currentPlayer === 'white' ? from + move : from - move;
-                        if (this.isValidMove(from, to)) {
+                        if (this.canMoveTo(from, to)) {
                             hasAvailableMoves = true;
                             break;
                         }
                     }
-                    if (hasAvailableMoves) break;
                 }
+                if (hasAvailableMoves) break;
             }
         }
         
         if (!hasAvailableMoves && this.movesLeft.length > 0) {
-            this.showMessage(`No available moves. Skipping remaining dice.`);
+            this.ui.showMessage(`No available moves. Skipping remaining dice.`);
+            this.movesLeft = [];
             setTimeout(() => this.endTurn(), 2000);
         }
     }
@@ -305,159 +296,39 @@ class BackgammonGame {
         this.movesLeft = [];
         this.selectedPoint = null;
         
-        document.getElementById('current-player').textContent = `${this.currentPlayer.charAt(0).toUpperCase() + this.currentPlayer.slice(1)}'s Turn`;
-        document.getElementById('die1').textContent = '';
-        document.getElementById('die2').textContent = '';
-        document.getElementById('roll-dice').disabled = false;
-        
-        this.updateMovesDisplay();
+        this.ui.updatePlayerTurn();
+        this.ui.updateDice();
+        this.ui.updateMovesDisplay();
+        this.ui.setRollDiceButtonState(true);
         this.clearSelection();
     }
     
     checkWinCondition() {
         if (this.home.white === 15) {
             this.gameActive = false;
-            this.showMessage('White wins!');
-            document.getElementById('roll-dice').disabled = true;
+            this.ui.showMessage('White wins!');
+            this.ui.setRollDiceButtonState(false);
         } else if (this.home.black === 15) {
             this.gameActive = false;
-            this.showMessage('Black wins!');
-            document.getElementById('roll-dice').disabled = true;
+            this.ui.showMessage('Black wins!');
+            this.ui.setRollDiceButtonState(false);
         }
-    }
-    
-    updateMovesDisplay() {
-        const movesElement = document.getElementById('moves-left');
-        if (this.movesLeft.length > 0) {
-            movesElement.textContent = `Moves: ${this.movesLeft.join(', ')}`;
-        } else {
-            movesElement.textContent = '';
-        }
-    }
-    
-    showMessage(message) {
-        document.getElementById('message').textContent = message;
     }
     
     resetGame() {
-        this.board = new Array(25).fill(null).map(() => ({ color: null, count: 0 }));
-        this.bar = { white: 0, black: 0 };
-        this.home = { white: 0, black: 0 };
+        this.initializeBoard();
         this.currentPlayer = 'white';
         this.dice = [];
         this.movesLeft = [];
         this.selectedPoint = null;
         this.gameActive = true;
         
-        this.initializeBoard();
-        this.render();
-        
-        document.getElementById('current-player').textContent = "White's Turn";
-        document.getElementById('die1').textContent = '';
-        document.getElementById('die2').textContent = '';
-        document.getElementById('roll-dice').disabled = false;
-        document.getElementById('message').textContent = 'Roll the dice to start!';
-        this.updateMovesDisplay();
-        this.clearSelection();
-    }
-    
-    render() {
-        document.querySelectorAll('.point').forEach(point => {
-            point.innerHTML = '';
-        });
-        
-        document.getElementById('bar-white').innerHTML = '';
-        document.getElementById('bar-black').innerHTML = '';
-        document.getElementById('home-white').innerHTML = '';
-        document.getElementById('home-black').innerHTML = '';
-        
-        for (let i = 1; i <= 24; i++) {
-            const pointData = this.board[i];
-            if (pointData.count > 0) {
-                const pointElement = document.querySelector(`[data-point="${i}"]`);
-                this.renderCheckers(pointElement, pointData.color, pointData.count, i);
-            }
-        }
-        
-        if (this.bar.white > 0) {
-            this.renderBarCheckers('bar-white', 'white', this.bar.white);
-        }
-        if (this.bar.black > 0) {
-            this.renderBarCheckers('bar-black', 'black', this.bar.black);
-        }
-        
-        if (this.home.white > 0) {
-            this.renderHomeCheckers('home-white', 'white', this.home.white);
-        }
-        if (this.home.black > 0) {
-            this.renderHomeCheckers('home-black', 'black', this.home.black);
-        }
-    }
-    
-    renderCheckers(container, color, count, point) {
-        const isTopHalf = point >= 13;
-        const maxVisible = 5;
-        const checkersToShow = Math.min(count, maxVisible);
-        
-        for (let i = 0; i < checkersToShow; i++) {
-            const checker = document.createElement('div');
-            checker.className = `checker ${color}`;
-            
-            if (isTopHalf) {
-                checker.style.top = `${10 + i * 35}px`;
-            } else {
-                checker.style.bottom = `${10 + i * 35}px`;
-            }
-            
-            container.appendChild(checker);
-        }
-        
-        if (count > maxVisible) {
-            const counter = document.createElement('div');
-            counter.className = 'checker-count';
-            counter.textContent = count;
-            counter.style.top = isTopHalf ? '90px' : 'auto';
-            counter.style.bottom = isTopHalf ? 'auto' : '90px';
-            container.appendChild(counter);
-        }
-    }
-    
-    renderBarCheckers(containerId, color, count) {
-        const container = document.getElementById(containerId);
-        for (let i = 0; i < Math.min(count, 5); i++) {
-            const checker = document.createElement('div');
-            checker.className = `checker ${color}`;
-            checker.style.position = 'relative';
-            container.appendChild(checker);
-        }
-        
-        if (count > 5) {
-            const counter = document.createElement('div');
-            counter.className = 'checker-count';
-            counter.textContent = count;
-            container.appendChild(counter);
-        }
-    }
-    
-    renderHomeCheckers(containerId, color, count) {
-        const container = document.getElementById(containerId);
-        for (let i = 0; i < Math.min(count, 5); i++) {
-            const checker = document.createElement('div');
-            checker.className = `checker ${color}`;
-            checker.style.position = 'relative';
-            container.appendChild(checker);
-        }
-        
-        if (count > 5) {
-            const counter = document.createElement('div');
-            counter.className = 'checker-count';
-            counter.textContent = count;
-            container.appendChild(counter);
-        }
+        this.ui.render();
+        this.ui.setRollDiceButtonState(true);
+        this.ui.showMessage('Roll the dice to start!');
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const game = new BackgammonGame();
-    document.getElementById('message').textContent = 'Roll the dice to start!';
+    new BackgammonGame();
 });
