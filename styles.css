@@ -1,0 +1,301 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 900px;
+    width: 100%;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 10px;
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#current-player {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+}
+
+.btn {
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.3s;
+}
+
+.btn:hover {
+    background: #45a049;
+}
+
+.btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+#dice-display {
+    display: flex;
+    gap: 10px;
+}
+
+.die {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+#moves-left {
+    font-size: 1em;
+    color: #666;
+}
+
+.board-container {
+    position: relative;
+    background: #8B4513;
+    border: 3px solid #654321;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.board {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    background: #D2691E;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.board-half {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.points-row {
+    display: flex;
+    gap: 5px;
+}
+
+.point {
+    width: 50px;
+    height: 200px;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px;
+    transition: background 0.3s;
+}
+
+.point::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.top-half .point::before {
+    border-width: 180px 25px 0 25px;
+    border-color: transparent;
+    top: 0;
+}
+
+.bottom-half .point::before {
+    border-width: 0 25px 180px 25px;
+    border-color: transparent;
+    bottom: 0;
+}
+
+.point:nth-child(odd)::before {
+    border-top-color: #8B0000;
+    border-bottom-color: #8B0000;
+}
+
+.point:nth-child(even)::before {
+    border-top-color: #F5DEB3;
+    border-bottom-color: #F5DEB3;
+}
+
+.point.highlight {
+    background: rgba(255, 255, 0, 0.3);
+}
+
+.point.selected {
+    background: rgba(0, 255, 0, 0.3);
+}
+
+.bar {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    bottom: 20px;
+    transform: translateX(-50%);
+    width: 60px;
+    background: #654321;
+    border: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 1;
+}
+
+.bar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.bar-space {
+    width: 60px;
+}
+
+.checker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    position: absolute;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+.checker.white {
+    background: radial-gradient(circle at 30% 30%, #ffffff, #e0e0e0);
+    border: 2px solid #ccc;
+}
+
+.checker.black {
+    background: radial-gradient(circle at 30% 30%, #4a4a4a, #000000);
+    border: 2px solid #222;
+}
+
+.checker.selected {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+.checker.can-move {
+    cursor: pointer;
+}
+
+.checker.cannot-move {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.home {
+    position: absolute;
+    width: 80px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid #333;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 5px;
+}
+
+#home-white {
+    right: -100px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 200px;
+}
+
+#home-black {
+    right: -100px;
+    top: 50%;
+    transform: translateY(calc(-50% - 220px));
+    height: 200px;
+}
+
+#message {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f0f0f0;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.1em;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.top-half .checker {
+    top: 10px;
+}
+
+.bottom-half .checker {
+    bottom: 10px;
+}
+
+.checker-count {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 15;
+}
